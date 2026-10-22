@@ -1,0 +1,5 @@
+sample,unit,var,pct,mean_demand,level_effect
+Peninsula (aggregate),MW per degree-day,hdd,1.76973304340981,26840.9274621401,475.01276245515
+Peninsula (aggregate),MW per degree-day,cdd,2.81035062191526,26840.9274621401,754.324171860078
+"Provinces, all summed (small consumers)",MW per degree-day,hdd,2.77718906604945,7762.05995073229,215.567080251941
+"Provinces, all summed (small consumers)",MW per degree-day,cdd,4.05654044674604,7762.05995073229,314.871101402131

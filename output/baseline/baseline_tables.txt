@@ -22,46 +22,25 @@ Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 == Small-consumer demand by province (log kWh), hourly ==
 M2w weights provinces by mean demand.
-                                         M1                   M2
-Dependent Var.:                  log demand           log demand
-                                                                
-HDD14 (°C·day)       0.02081*** (0.00193) 0.02237*** (0.00152)
-CDD21 (°C·day)       0.03577*** (0.00225) 0.03353*** (0.00218)
-Fixed-Effects:         -------------------- --------------------
-province                                Yes                   No
-hour                                    Yes                   No
-day type                                Yes                   No
-month                                   Yes                   No
-year                                    Yes                   No
-province-hour-month                      No                  Yes
-province-hour-day type                   No                  Yes
-province-year                            No                  Yes
-province-year-month                      No                   No
-______________________ ____________________ ____________________
-S.E.: Clustered         by: province & week  by: province & week
-Observations                      1,886,956            1,886,956
-R2                                  0.98440              0.99508
-Within R2                           0.27177              0.41158
-
-                                         M3                  M2w
-Dependent Var.:                  log demand           log demand
-                                                                
-HDD14 (°C·day)       0.02078*** (0.00139) 0.02777*** (0.00199)
-CDD21 (°C·day)       0.03246*** (0.00215) 0.04056*** (0.00221)
-Fixed-Effects:         -------------------- --------------------
-province                                 No                   No
-hour                                     No                   No
-day type                                 No                   No
-month                                    No                   No
-year                                     No                   No
-province-hour-month                     Yes                  Yes
-province-hour-day type                  Yes                  Yes
-province-year                            No                  Yes
-province-year-month                     Yes                   No
-______________________ ____________________ ____________________
-S.E.: Clustered         by: province & week  by: province & week
-Observations                      1,886,956            1,886,956
-R2                                  0.99575              0.99546
-Within R2                           0.38938              0.46688
+                                         M1                   M2                   M3                  M2w
+Dependent Var.:                  log demand           log demand           log demand           log demand
+                                                                                                          
+HDD14 (°C·day)       0.02081*** (0.00193) 0.02237*** (0.00152) 0.02078*** (0.00139) 0.02777*** (0.00199)
+CDD21 (°C·day)       0.03577*** (0.00225) 0.03353*** (0.00218) 0.03246*** (0.00215) 0.04056*** (0.00221)
+Fixed-Effects:         -------------------- -------------------- -------------------- --------------------
+province                                Yes                   No                   No                   No
+hour                                    Yes                   No                   No                   No
+day type                                Yes                   No                   No                   No
+month                                   Yes                   No                   No                   No
+year                                    Yes                   No                   No                   No
+province-hour-month                      No                  Yes                  Yes                  Yes
+province-hour-day type                   No                  Yes                  Yes                  Yes
+province-year                            No                  Yes                   No                  Yes
+province-year-month                      No                   No                  Yes                   No
+______________________ ____________________ ____________________ ____________________ ____________________
+S.E.: Clustered         by: province & week  by: province & week  by: province & week  by: province & week
+Observations                      1,886,956            1,886,956            1,886,956            1,886,956
+R2                                  0.98440              0.99508              0.99575              0.99546
+Within R2                           0.27177              0.41158              0.38938              0.46688
 ---
 Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1

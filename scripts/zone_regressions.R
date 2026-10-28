@@ -164,9 +164,9 @@ tests <- rbind(cbind(model = "T2 (pooled hours)", wald_dev(m$T2)),
 sink(file.path(out_dir, "zone_tables.txt"))
 cat("== Peninsular demand (log MW), hourly, 2021-06 to 2025-12 ==\n")
 print(etable(m[c("N2", "Z2", "T2")], dict = dict, digits = 5, fitstat = ~ n + r2 + wr2))
-cat("\nWithin R2 by hour-interacted model: ",
-    sprintf("N4 %.4f | Z4 %.4f | T4 %.4f\n", fitstat(m$N4, "wr2")[[1]], fitstat(m$Z4, "wr2")[[1]],
-            fitstat(m$T4, "wr2")[[1]]))
+for (k in c("N4", "Z4", "T4")) {
+  cat(sprintf("%s (by hour): R2 %.4f | within R2 %.4f\n", k, fitstat(m[[k]], "r2")[[1]], fitstat(m[[k]], "wr2")[[1]]))
+}
 cat("\nWald test that zone deviations are jointly zero (fixed national weights are enough):\n")
 print(tests)
 sink()
@@ -243,7 +243,7 @@ cl_share <- unique(merge(wt[, .(province, weight)], geo[, .(province, cluster)])
 sink(file.path(out_dir, "zone_tables.txt"), append = TRUE)
 cat("\nRobustness Z2c: zones = data-driven clusters (demand shares below)\n")
 print(cl_share[order(cluster)])
-print(etable(m$Z2c, digits = 5, fitstat = ~ n + wr2))
+print(etable(m$Z2c, digits = 5, fitstat = ~ n + r2 + wr2))
 cat("Sum of CDD coefficients:", sum(coef(m$Z2c)[grep("^cdd", names(coef(m$Z2c)))]),
     " HDD:", sum(coef(m$Z2c)[grep("^hdd", names(coef(m$Z2c)))]), "\n")
 cat("\nZone effects (Z2), % per zone degree-day; per_share = effect / zone demand share:\n")

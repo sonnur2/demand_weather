@@ -58,8 +58,9 @@ R2                             0.92865
 Within R2                      0.39556
 ---
 Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Within R2 by hour-interacted model:  N4 0.4038 | Z4 0.4229 | T4 0.4229
+N4 (by hour): R2 0.9296 | within R2 0.4038
+Z4 (by hour): R2 0.9319 | within R2 0.4229
+T4 (by hour): R2 0.9319 | within R2 0.4229
 
 Wald test that zone deviations are jointly zero (fixed national weights are enough):
                model     stat            p df1 df2
@@ -90,6 +91,7 @@ year                             Yes
 _______________ ____________________
 S.E.: Clustered             by: week
 Observations                  40,148
+R2                           0.92806
 Within R2                    0.39049
 ---
 Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1

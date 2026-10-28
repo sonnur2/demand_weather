@@ -1,0 +1,425 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,booktabs,array,graphicx}
+
+\newcommand{\ind}{\mathbf{1}}
+% Placeholder box for figures: replace with \includegraphics when adding the plot
+\newcommand{\figplaceholder}[1]{%
+  \fbox{\parbox[c][0.5\textheight][c]{0.9\linewidth}{\centering\small #1}}}
+
+\title[Temperature and electricity demand]{Temperature and Electricity Demand in Spain}
+\subtitle{Case Study II: Heat waves and the electricity market, step 2}
+\author{}
+\date{October 2026}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ===========================================================================
+\section{Question and data}
+% ===========================================================================
+
+\begin{frame}{Question}
+  \begin{itemize}
+    \item Electricity demand has strong regular patterns: hour of day, day of week,
+          holidays, season.
+    \item \textbf{Question:} once those patterns are removed, how much does a
+          temperature shock move demand?
+    \item Two demand series, always estimated at hourly frequency:
+      \begin{itemize}
+        \item \textbf{Aggregate (peninsula):} all consumers. System-level response,
+              the input for the market simulation (counterfactual prices).
+        \item \textbf{Small consumers (47 provinces):} mostly households. Matched to
+              local weather; allows heterogeneous effects across provinces.
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Data: demand}
+  \small
+  \begin{tabular}{@{}l>{\raggedright\arraybackslash}p{5.6cm}>{\raggedright\arraybackslash}p{5.6cm}@{}}
+    \toprule
+    & Aggregate (peninsula) & Small consumers (province) \\
+    \midrule
+    Variable     & $\ln D_t$: log hourly demand & $\ln D_{i,t}$: log hourly demand of province $i$ \\
+    Unit         & MW (hourly mean) & kWh per hour \\
+    Spatial unit & Peninsula, one series & 47 peninsular provinces \\
+    Mean         & 26{,}841 MW & 165{,}150 kWh per province-hour (7{,}762 MW summed) \\
+    Coverage     & All consumers & Small consumers, about 29\% of demand \\
+    Observations & 40{,}148 hours & 1{,}886{,}956 province-hours \\
+    \bottomrule
+  \end{tabular}
+  \vspace{4pt}
+  \begin{itemize}\footnotesize
+    \item Community-level series are not used: they equal peninsular demand times a
+          share fixed within each month, so they carry no independent hourly variation.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Data: temperature, calendar and sample}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \textbf{Degree-days} (daily, by province, $^{\circ}$C$\cdot$day)
+      \[
+        HDD_{i,d} = \max(14^{\circ}\mathrm{C} - T_{i,d},\,0), \quad
+        CDD_{i,d} = \max(T_{i,d} - 21^{\circ}\mathrm{C},\,0)
+      \]
+      \vspace{-6pt}
+      \begin{itemize}\small
+        \item $T_{i,d}$: daily mean temperature of province $i$ on day $d$.
+        \item Same value for all 24 hours of a day.
+        \item Peninsula: weighted mean of the 47 provinces (weights = demand shares).
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \textbf{Calendar}
+      \begin{itemize}\small
+        \item Hour of day, day type (Mon--Sun or holiday), month, year.
+        \item Holidays: 9 fixed national days, Good Friday, Holy Thursday (50 days).
+      \end{itemize}
+      \textbf{Sample}
+      \begin{itemize}\small
+        \item 1 June 2021 -- 31 December 2025: after COVID and the June 2021 2.0TD
+              time-of-use tariff.
+        \item 28--29 April 2025 (blackout) excluded.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ===========================================================================
+\section{Baseline regressions}
+% ===========================================================================
+
+\begin{frame}{Notation}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \begin{itemize}\small
+        \item $t$: an hourly observation (local time)
+        \item $i$: province, $i = 1,\dots,47$
+        \item $d(t)$: calendar day of hour $t$
+        \item $h(t) \in \{0,\dots,23\}$: hour of day
+        \item $m(t) \in \{1,\dots,12\}$: month of year
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{itemize}\small
+        \item $\tau(t)$: day type (Mon, \dots, Sun, holiday)
+        \item $y(t)$: year; $ym(t)$: year-month
+        \item $\alpha, \gamma, \delta$: fixed effects (one intercept per cell)
+        \item $\ind\{h(t)=k\}$: equals 1 if $t$ is in hour $k$, 0 otherwise
+        \item $\beta_H, \beta_C$: effects of HDD and CDD
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \vspace{8pt}
+  \small Coefficients $\times 100$ $\approx$ percent change in demand per degree-day.
+\end{frame}
+
+\begin{frame}{Baseline specification (M2)}
+  \textbf{Peninsula}
+  \[
+    \ln D_t = \beta_H\, HDD_{d(t)} + \beta_C\, CDD_{d(t)}
+      + \alpha_{h(t),m(t)} + \gamma_{h(t),\tau(t)} + \delta_{y(t)} + \varepsilon_t
+  \]
+  \textbf{Small consumers}
+  \[
+    \ln D_{i,t} = \beta_H\, HDD_{i,d(t)} + \beta_C\, CDD_{i,d(t)}
+      + \alpha_{i,h(t),m(t)} + \gamma_{i,h(t),\tau(t)} + \delta_{i,y(t)} + \varepsilon_{i,t}
+  \]
+  \begin{itemize}\small
+    \item $\alpha$: hour $\times$ month: normal daily load shape in each month.
+    \item $\gamma$: hour $\times$ day type: weekly cycle and holiday shape.
+    \item $\delta$: year: growth, rooftop solar, 2022 price crisis.
+    \item Identification: days hotter or colder than usual for that province and month.
+    \item SE clustered by week (peninsula); by province and week (provinces).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Specification ladder}
+  \small
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Model & Fixed effects (peninsula; provinces add $\times$ province) & Idea \\
+    \midrule
+    M1  & $\alpha_h + \alpha_\tau + \alpha_m + \alpha_y$ & Additive calendar controls \\
+    M2  & $\alpha_{h,m} + \gamma_{h,\tau} + \delta_y$ & Baseline \\
+    M3  & $\alpha_{h,m} + \gamma_{h,\tau} + \delta_{ym}$ & Within-month shocks only \\
+    M2w & M2, provinces weighted by mean demand & Effect on total small-consumer demand \\
+    M4  & M2, with HDD and CDD effects by hour of day & Hourly response profile \\
+    \bottomrule
+  \end{tabular}
+  \vspace{8pt}
+  \textbf{M4 (peninsula; provinces analogous with index $i$)}
+  \[
+    \ln D_t = \sum_{k=0}^{23} \beta^{C}_{k}\, \ind\{h(t)=k\}\, CDD_{d(t)}
+      + \sum_{k=0}^{23} \beta^{H}_{k}\, \ind\{h(t)=k\}\, HDD_{d(t)}
+      + \alpha_{h(t),m(t)} + \gamma_{h(t),\tau(t)} + \delta_{y(t)} + \varepsilon_t
+  \]
+  \footnotesize $\beta^{C}_{k}$: percent change in demand at hour $k$ per extra CDD that day.
+\end{frame}
+
+\begin{frame}{Baseline results}
+  \centering\small
+  \begin{tabular}{@{}lccccc@{}}
+    \toprule
+    & M1 & M2 & M3 & M2w & M4 \\
+    \midrule
+    \multicolumn{6}{@{}l}{\textit{Peninsula (aggregate)}} \\
+    \quad CDD21 & 2.81*** & 2.81*** & 2.75*** & -- & by hour \\
+                & (0.11)  & (0.11)  & (0.11)  &    &         \\
+    \quad HDD14 & 1.77*** & 1.77*** & 1.60*** & -- & by hour \\
+                & (0.17)  & (0.17)  & (0.17)  &    &         \\
+    \quad $R^2$ & 0.850 & 0.927 & 0.934 & -- & 0.930 \\[3pt]
+    \multicolumn{6}{@{}l}{\textit{Small consumers (province panel)}} \\
+    \quad CDD21 & 3.58*** & 3.35*** & 3.25*** & 4.06*** & by hour \\
+                & (0.23)  & (0.22)  & (0.22)  & (0.22)  &         \\
+    \quad HDD14 & 2.08*** & 2.24*** & 2.08*** & 2.78*** & by hour \\
+                & (0.19)  & (0.15)  & (0.14)  & (0.20)  &         \\
+    \quad $R^2$ & 0.984 & 0.995 & 0.996 & 0.995 & 0.995 \\
+    \bottomrule
+  \end{tabular}
+  \vspace{4pt}
+
+  \footnotesize\raggedright
+  Coefficients $\times 100$ (\% per degree-day). SE in parentheses: clustered by week
+  (peninsula) or by province and week (provinces). *** $p<0.01$.
+  N = 40{,}148 hours and 1{,}886{,}956 province-hours. M1--M3 for the
+  peninsula use small-consumer weights for national degree-days.
+\end{frame}
+
+\begin{frame}{Interpretation}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \textbf{Aggregate demand (M2)}
+      \begin{itemize}\small
+        \item +1 CDD: +2.8\%, about +754 MW.
+        \item +1 HDD: +1.8\%, about +475 MW.
+        \item Very hot day (95th pct., CDD = 5.9):
+              $e^{0.0281 \times 5.92} - 1 \approx +18\%$, close to +5 GW.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Small consumers (M2w)}
+      \begin{itemize}\small
+        \item +1 CDD: +4.1\%, about +315 MW.
+        \item +1 HDD: +2.8\%, about +216 MW.
+        \item 29\% of demand, but about 42\% of the system's response to heat.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \vspace{8pt}
+  \begin{itemize}\small
+    \item M1 and M2 give the same peninsula coefficient: CDD is constant within a day,
+          so hour interactions do not change its identifying variation; they raise $R^2$.
+    \item For provinces, M1 and M2 differ because M2 interacts the fixed effects with province.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Hourly profile (M4)}
+  \centering
+  \figplaceholder{Insert \texttt{output/baseline/hourly\_effects\_M4.png}}
+  % \includegraphics[width=0.95\linewidth]{hourly_effects_M4.png}
+  \vspace{4pt}
+  \begin{itemize}\small
+    \item Cooling effect peaks at 16--17h: 4.1\% (peninsula), 5.2\% (small consumers).
+    \item Small consumers also respond at night (3.3--3.6\% at 0--4h vs.\ 2.2--2.8\%).
+  \end{itemize}
+\end{frame}
+
+% ===========================================================================
+\section{Climate zones}
+% ===========================================================================
+
+\begin{frame}{Using province-level weather in the peninsula regression}
+  \textbf{Why not all 47 provinces' HDD and CDD as regressors?}
+  \begin{itemize}\small
+    \item 94 temperature coefficients (2{,}256 by hour), identified from only 1{,}673
+          days of weather.
+    \item Strong collinearity: within a month, provincial CDD correlate 0.58 on average.
+    \item Individual coefficients would be noisy and uninterpretable.
+  \end{itemize}
+  \textbf{But regional variation exists}
+  \begin{itemize}\small
+    \item One common factor explains 60\% of within-month CDD variation; a second,
+          regional factor a further 13\%.
+  \end{itemize}
+  \textbf{Solution:} group provinces into four climate zones, each with its own coefficient.
+  The data then choose the weights.
+\end{frame}
+
+\begin{frame}{Climate zones: provinces and demand shares}
+  \scriptsize
+  \begin{tabular}{@{}l>{\raggedright\arraybackslash}p{9.9cm}r@{}}
+    \toprule
+    Zone & Communities (share of peninsular demand) and provinces & Share \\
+    \midrule
+    North & Galicia (6.0\%): La Coruña, Lugo, Orense, Pontevedra;
+            Asturias (3.6\%); Cantabria (1.6\%);
+            País Vasco (6.3\%): Álava, Guipúzcoa, Vizcaya & 17.5\% \\[2pt]
+    Interior & Castilla y León (5.6\%): Ávila, Burgos, León, Palencia, Salamanca,
+               Segovia, Soria, Valladolid, Zamora; La Rioja (0.7\%); Navarra (2.0\%);
+               Aragón (4.3\%): Huesca, Teruel, Zaragoza; Madrid (11.7\%);
+               Castilla-La Mancha (5.1\%): Albacete, Ciudad Real, Cuenca, Guadalajara, Toledo;
+               Extremadura (2.1\%): Badajoz, Cáceres & 31.5\% \\[2pt]
+    Mediterranean & Cataluña (18.9\%): Barcelona, Gerona, Lérida, Tarragona;
+                    Comunidad Valenciana (11.5\%): Alicante, Castellón, Valencia;
+                    Murcia (3.9\%) & 34.3\% \\[2pt]
+    South & Andalucía (16.7\%): Almería, Cádiz, Córdoba, Granada, Huelva, Jaén,
+            Málaga, Sevilla & 16.7\% \\
+    \bottomrule
+  \end{tabular}
+  \vspace{4pt}
+
+  \raggedright
+  Shares: community share of peninsular demand, June 2021 -- December 2025.
+  Check: clustering provinces on daily temperature deviations gives similar groups
+  for the interior; results are robust to using the data-driven clusters.
+\end{frame}
+
+\begin{frame}{Zone specification}
+  \textbf{Weights} (total demand):
+  $w_p = s_{c(p)} \times \bar{q}_p / \sum_{p' \in c(p)} \bar{q}_{p'}$,
+  with $s_c$ the community's demand share and $\bar{q}_p$ mean small-consumer demand.
+  \[
+    CDD_{z,d} = \frac{\sum_{p \in z} w_p\, CDD_{p,d}}{\sum_{p \in z} w_p}
+    \quad\text{(same for HDD)}
+  \]
+  \textbf{Zone model by hour (Z4)}
+  \[
+    \ln D_t = \sum_{z}\sum_{k=0}^{23} \beta^{C}_{z,k}\, \ind\{h(t)=k\}\, CDD_{z,d(t)}
+      + \sum_{z}\sum_{k=0}^{23} \beta^{H}_{z,k}\, \ind\{h(t)=k\}\, HDD_{z,d(t)}
+      + \alpha_{h(t),m(t)} + \gamma_{h(t),\tau(t)} + \delta_{y(t)} + \varepsilon_t
+  \]
+  \begin{itemize}\small
+    \item $z \in \{$North, Interior, Mediterranean, South$\}$; $4 \times 24 \times 2 = 192$
+          temperature coefficients.
+    \item $\beta^{C}_{z,k}$: percent change in national demand at hour $k$ per extra CDD
+          in zone $z$, other zones held fixed.
+    \item Z2: one coefficient per zone. Test (T2): national degree-days plus zone
+          deviations; Wald test that deviations are zero.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Zone results (pooled over hours)}
+  \centering\scriptsize
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    & (1) National (N2) & (2) Zones (Z2) & (3) Test (T2) \\
+    \midrule
+    \multicolumn{4}{@{}l}{\textit{CDD21}} \\
+    \quad National      & 2.896*** (0.118) &                    & 2.600*** (0.182) \\
+    \quad North         &                  & $-$0.022 (0.204)   &                  \\
+    \quad Interior      &                  & 0.649*** (0.124)   & 0.689 (0.446)    \\
+    \quad Mediterranean &                  & 1.457*** (0.116)   & 1.500*** (0.420) \\
+    \quad South         &                  & 0.515*** (0.113)   & 0.536*** (0.207) \\
+    \multicolumn{4}{@{}l}{\textit{HDD14}} \\
+    \quad National      & 1.712*** (0.164) &                    & 2.095*** (0.250) \\
+    \quad North         &                  & 0.213 (0.228)      &                  \\
+    \quad Interior      &                  & 0.015 (0.303)      & $-$0.368 (0.688) \\
+    \quad Mediterranean &                  & 1.345*** (0.248)   & 0.928** (0.451)  \\
+    \quad South         &                  & 0.523* (0.271)     & 0.320 (0.274)    \\
+    \midrule
+    Wald $F(6,239)$, deviations $= 0$ & & & 8.54 ($p<0.001$) \\
+    $R^2$               & 0.927 & 0.929 & 0.929 \\
+    \bottomrule
+  \end{tabular}
+  \vspace{3pt}
+
+  \raggedright\tiny
+  Coefficients $\times 100$. Hourly log peninsular demand, N = 40{,}148. FE: hour $\times$
+  month, hour $\times$ day type, year. SE clustered by week. In (3), zone rows are deviations
+  from national degree-days (North omitted). * $p<0.10$, ** $p<0.05$, *** $p<0.01$.
+\end{frame}
+
+\begin{frame}{Relative importance: demand share vs.\ estimated effect}
+  \centering\small
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    Zone & Demand share & CDD coef. & Share of zone CDD effect & Share of zone HDD effect \\
+    \midrule
+    Mediterranean & 34.3\% & 1.46 & 56\% & 64\% \\
+    Interior      & 31.5\% & 0.65 & 25\% & 1\%  \\
+    South         & 16.7\% & 0.52 & 20\% & 25\% \\
+    North         & 17.5\% & $-$0.02 & $-$1\% & 10\% \\
+    \midrule
+    Sum           & 100\%  & 2.60 & 100\% & 100\% \\
+    \bottomrule
+  \end{tabular}
+  \vspace{6pt}
+  \begin{itemize}\small
+    \item Share of effect = zone coefficient / sum of zone coefficients (Z2).
+    \item Mediterranean heat matters far more than its demand share; northern heat
+          has no measurable effect.
+    \item Fixed national weights rejected, but a uniform +1 CDD gives a similar
+          total: 2.60\% (zones) vs.\ 2.90\% (national).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Zone effects by hour (Z4)}
+  \centering\scriptsize
+  \begin{tabular}{@{}lcccccc@{}}
+    \toprule
+    CDD, \% per zone degree-day & 0h & 4h & 8h & 12h & 16h & 20h \\
+    \midrule
+    North         & $-$0.01 (0.19) & 0.08 (0.20) & 0.01 (0.30) & 0.02 (0.34) & $-$0.05 (0.31) & $-$0.17 (0.31) \\
+    Interior      & 0.26 (0.13) & 0.15 (0.12) & 0.32 (0.19) & 0.82 (0.22) & 1.20 (0.21) & 1.10 (0.19) \\
+    Mediterranean & 1.65 (0.14) & 1.34 (0.13) & 1.08 (0.15) & 1.71 (0.23) & 1.91 (0.20) & 1.05 (0.20) \\
+    South         & 0.75 (0.12) & 0.65 (0.12) & 0.14 (0.16) & 0.13 (0.19) & 0.66 (0.18) & 0.68 (0.16) \\
+    \midrule
+    \multicolumn{7}{@{}l}{$R^2$: Z4 0.932; national by hour (N4) 0.930} \\
+    \bottomrule
+  \end{tabular}
+  \vspace{6pt}
+  \begin{itemize}\small
+    \item Mediterranean: high at all hours, including night (humid coast).
+    \item Interior: afternoon peak (15--17h). South: later, around 18h.
+    \item Wald test of fixed weights by hour: $F(144,239) = 8.4$, $p<0.001$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Zone effects by hour: plot}
+  \centering
+  \figplaceholder{Insert \texttt{output/zones/hourly\_zone\_effects\_Z4.png}}
+  % \includegraphics[width=0.95\linewidth]{hourly_zone_effects_Z4.png}
+  \vspace{4pt}
+
+  \small Percent change in national demand per zone degree-day, by hour; 95\% bands.
+\end{frame}
+
+% ===========================================================================
+\section{Summary}
+% ===========================================================================
+
+\begin{frame}{Summary and next steps}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \textbf{Findings}
+      \begin{itemize}\small
+        \item Heat raises demand more than cold: +2.8\% vs.\ +1.8\% per degree-day.
+        \item Small consumers respond more (+4.1\% per CDD) and drive about 42\% of the
+              heat response.
+        \item Response peaks at 16--18h.
+        \item Mediterranean heat is the main driver of national demand.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Next steps}
+      \begin{itemize}\small
+        \item Temperature bins: nonlinear effects at extreme heat.
+        \item Heat-wave indicator and lags.
+        \item Province heterogeneity (province $\times$ CDD).
+        \item Regional holidays; humidity, solar radiation, wind.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\end{document}

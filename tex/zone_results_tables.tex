@@ -1,0 +1,103 @@
+\documentclass[11pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs,threeparttable}
+
+\begin{document}
+
+% ---------------------------------------------------------------------------
+% Table 1: pooled-hour models
+% ---------------------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\begin{threeparttable}
+\caption{Peninsular demand and zone degree-days (pooled over hours)}
+\label{tab:zones}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & (1) National & (2) Zones & (3) Test of weights \\
+\midrule
+\multicolumn{4}{@{}l}{\textit{Cooling degree-days (CDD21)}} \\
+\quad National            & 2.896*** &          & 2.600*** \\
+                          & (0.118)  &          & (0.182)  \\
+\quad North               &          & $-$0.022 &          \\
+                          &          & (0.204)  &          \\
+\quad Interior            &          & 0.649*** & 0.689    \\
+                          &          & (0.124)  & (0.446)  \\
+\quad Mediterranean       &          & 1.457*** & 1.500*** \\
+                          &          & (0.116)  & (0.420)  \\
+\quad South               &          & 0.515*** & 0.536*** \\
+                          &          & (0.113)  & (0.207)  \\[3pt]
+\multicolumn{4}{@{}l}{\textit{Heating degree-days (HDD14)}} \\
+\quad National            & 1.712*** &          & 2.095*** \\
+                          & (0.164)  &          & (0.250)  \\
+\quad North               &          & 0.213    &          \\
+                          &          & (0.228)  &          \\
+\quad Interior            &          & 0.015    & $-$0.368 \\
+                          &          & (0.303)  & (0.688)  \\
+\quad Mediterranean       &          & 1.345*** & 0.928**  \\
+                          &          & (0.248)  & (0.451)  \\
+\quad South               &          & 0.523*   & 0.320    \\
+                          &          & (0.271)  & (0.274)  \\
+\midrule
+Sum of zone CDD coefficients &       & 2.600    &          \\
+Sum of zone HDD coefficients &       & 2.095    &          \\
+Wald test, zone deviations $= 0$: $F(6, 239)$ & & & 8.54 \\
+\quad $p$-value           &          &          & $<0.001$ \\
+\midrule
+Hour $\times$ month FE    & Yes & Yes & Yes \\
+Hour $\times$ day-type FE & Yes & Yes & Yes \\
+Year FE                   & Yes & Yes & Yes \\
+Observations (hours)      & 40,148 & 40,148 & 40,148 \\
+$R^2$                     & 0.927 & 0.929 & 0.929 \\
+Within $R^2$              & 0.381 & 0.396 & 0.396 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}[flushleft]\footnotesize
+\item \textit{Notes:} Dependent variable: log hourly peninsular electricity demand,
+1 June 2021 to 31 December 2025 (28--29 April 2025 excluded). Coefficients
+$\times 100$, i.e.\ approximate percent change in demand per degree-day.
+Column (1) uses national degree-days, the demand-weighted mean over 47 provinces.
+Column (2) uses the degree-days of four climate zones. In column (3), zone rows are
+deviations of the zone's degree-days from the national value (North omitted);
+the Wald test asks whether they are jointly zero, i.e.\ whether fixed national
+weights are sufficient. Standard errors clustered by ISO week (240 clusters) in
+parentheses. * $p<0.10$, ** $p<0.05$, *** $p<0.01$.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+% ---------------------------------------------------------------------------
+% Table 2: cooling effects by hour of day (zone model by hour)
+% ---------------------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\begin{threeparttable}
+\caption{Effect of zone cooling degree-days on peninsular demand, by hour of day}
+\label{tab:zones_hourly}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Zone & 0h & 4h & 8h & 12h & 16h & 20h \\
+\midrule
+North         & $-$0.01 & 0.08 & 0.01 & 0.02 & $-$0.05 & $-$0.17 \\
+              & (0.19) & (0.20) & (0.30) & (0.34) & (0.31) & (0.31) \\
+Interior      & 0.26 & 0.15 & 0.32 & 0.82 & 1.20 & 1.10 \\
+              & (0.13) & (0.12) & (0.19) & (0.22) & (0.21) & (0.19) \\
+Mediterranean & 1.65 & 1.34 & 1.08 & 1.71 & 1.91 & 1.05 \\
+              & (0.14) & (0.13) & (0.15) & (0.23) & (0.20) & (0.20) \\
+South         & 0.75 & 0.65 & 0.14 & 0.13 & 0.66 & 0.68 \\
+              & (0.12) & (0.12) & (0.16) & (0.19) & (0.18) & (0.16) \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}[flushleft]\footnotesize
+\item \textit{Notes:} Selected hours from the model with zone $\times$ hour-of-day
+coefficients for CDD and HDD (192 temperature coefficients), with the same fixed
+effects and sample as Table~\ref{tab:zones}. Coefficients $\times 100$: percent
+change in national demand at that hour per extra cooling degree-day in the zone,
+holding other zones fixed. Standard errors clustered by week in parentheses.
+Within $R^2 = 0.423$ (0.404 with national degree-days). All 24 hours and the
+heating coefficients are in \texttt{output/zones/hourly\_zone\_effects\_Z4.csv}.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\end{document}

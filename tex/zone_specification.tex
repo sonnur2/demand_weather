@@ -1,0 +1,102 @@
+\documentclass[11pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,array}
+
+\begin{document}
+
+\section*{Zone specification for peninsular electricity demand}
+
+We regress hourly log peninsular electricity demand on daily heating and
+cooling degree-days of four climate zones, with a separate coefficient for
+each zone and hour of the day:
+\begin{equation}
+\begin{split}
+\ln D_t = {} & \sum_{z \in \mathcal{Z}} \sum_{k=0}^{23}
+  \beta^{C}_{z,k}\, \mathbf{1}\{h(t)=k\}\, CDD_{z,d(t)}
+  + \sum_{z \in \mathcal{Z}} \sum_{k=0}^{23}
+  \beta^{H}_{z,k}\, \mathbf{1}\{h(t)=k\}\, HDD_{z,d(t)} \\
+  & + \alpha_{h(t),\,m(t)} + \gamma_{h(t),\,\tau(t)} + \delta_{y(t)} + \varepsilon_t .
+\end{split}
+\label{eq:zone}
+\end{equation}
+
+\subsection*{Indices}
+\begin{itemize}
+  \item $t$: an hourly observation (local time), 1 June 2021 to 31 December 2025,
+        excluding 28--29 April 2025 (blackout); 40{,}148 hours.
+  \item $h(t) \in \{0,\dots,23\}$: hour of the day of observation $t$.
+  \item $d(t)$: calendar day of observation $t$.
+  \item $m(t) \in \{1,\dots,12\}$: month of the year of $t$.
+  \item $\tau(t)$: day type of $t$: Monday, \dots, Sunday, or holiday (national
+        holidays and Holy Thursday form their own type).
+  \item $y(t) \in \{2021,\dots,2025\}$: year of $t$.
+  \item $z \in \mathcal{Z} = \{\text{North}, \text{Interior}, \text{Mediterranean}, \text{South}\}$: climate zone.
+  \item $k \in \{0,\dots,23\}$: hour label in the sums.
+\end{itemize}
+
+\subsection*{Variables}
+\begin{itemize}
+  \item $D_t$: peninsular electricity demand in hour $t$ (MW, hourly mean).
+  \item $\mathbf{1}\{h(t)=k\}$: indicator equal to 1 if observation $t$ falls in
+        hour $k$ of the day and 0 otherwise. For each observation exactly one of
+        the 24 indicators is 1, so only the coefficients of that hour apply.
+  \item $CDD_{p,d} = \max(T_{p,d} - 21^{\circ}\mathrm{C},\, 0)$ and
+        $HDD_{p,d} = \max(14^{\circ}\mathrm{C} - T_{p,d},\, 0)$: daily cooling and
+        heating degree-days of province $p$ on day $d$ ($^{\circ}$C$\cdot$day),
+        where $T_{p,d}$ is daily mean temperature. Because weather is daily, all
+        24 hours of a day share the same value.
+  \item $CDD_{z,d}$ and $HDD_{z,d}$: zone degree-days, the weighted mean over the
+        provinces $p$ in zone $z$,
+        \[
+          CDD_{z,d} = \frac{\sum_{p \in z} w_p\, CDD_{p,d}}{\sum_{p \in z} w_p},
+          \qquad
+          w_p = s_{c(p)} \times \frac{\bar{q}_p}{\sum_{p' \in c(p)} \bar{q}_{p'}},
+        \]
+        where $s_{c}$ is community $c$'s share of peninsular demand over the
+        sample and $\bar{q}_p$ is mean small-consumer demand in province $p$.
+        The weights $w_p$ sum to one across the 47 provinces.
+\end{itemize}
+
+\subsection*{Coefficients and fixed effects}
+\begin{itemize}
+  \item $\beta^{C}_{z,k}$: effect of one additional cooling degree-day in zone $z$
+        on log national demand at hour $k$, holding the other zones' weather
+        fixed; $100\,\beta^{C}_{z,k}$ is approximately the percent change.
+        $\beta^{H}_{z,k}$ is the analogue for heating degree-days. There are
+        $4 \times 24 \times 2 = 192$ temperature coefficients.
+  \item $\alpha_{h,m}$: hour-of-day $\times$ month fixed effects (288 cells);
+        absorb the normal daily load shape in each month.
+  \item $\gamma_{h,\tau}$: hour-of-day $\times$ day-type fixed effects (192 cells);
+        absorb the weekly cycle and the holiday load shape.
+  \item $\delta_{y}$: year fixed effects; absorb slow changes in the level of
+        demand (growth, self-consumption, the 2022 price crisis).
+  \item $\varepsilon_t$: error term. Standard errors are clustered by ISO week
+        (240 clusters).
+\end{itemize}
+
+\subsection*{Climate zones}
+\begin{center}
+\begin{tabular}{@{}l >{\raggedright\arraybackslash}p{8.5cm} r r@{}}
+\toprule
+Zone & Autonomous communities & Provinces & Demand share \\
+\midrule
+North         & Galicia, Asturias, Cantabria, Pa\'is Vasco & 9 & 17.5\% \\
+Interior      & Castilla y Le\'on, La Rioja, Navarra, Arag\'on, Madrid,
+                Castilla-La Mancha, Extremadura & 22 & 31.5\% \\
+Mediterranean & Catalu\~na, Comunidad Valenciana, Murcia & 8 & 34.3\% \\
+South         & Andaluc\'ia & 8 & 16.7\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Example}
+For the observation 15 July 2023 at 16:00, $h(t)=16$, so
+$\mathbf{1}\{h(t)=16\}=1$ and all other indicators are 0. Equation
+\eqref{eq:zone} reduces to
+\[
+\ln D_t = \sum_{z} \beta^{C}_{z,16}\, CDD_{z,\text{15 Jul}}
+        + \sum_{z} \beta^{H}_{z,16}\, HDD_{z,\text{15 Jul}}
+        + \alpha_{16,\text{Jul}} + \gamma_{16,\text{Sat}} + \delta_{2023} + \varepsilon_t .
+\]
+
+\end{document}

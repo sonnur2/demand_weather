@@ -1,0 +1,41 @@
+Zone M4 model, level = year FE 2025 | scale factor 1 | smearing 1.00087 
+In-sample fit 2021-06 to 2025: hourly MAPE 3.04%, total bias 0.00%
+   year actual_twh fitted_twh actual_peak fitted_peak
+1: 2021     142.47     142.62       37070       37187
+2: 2022     236.03     235.96       37903       38217
+3: 2023     229.26     229.21       38831       38653
+4: 2024     232.23     232.33       38012       37378
+5: 2025     237.62     237.50       39792       38910
+
+== 2030, full year ==
+                             scenario    twh mean_mw peak_mw
+1:         no weather (HDD = CDD = 0) 222.84   25438   33040
+2: normal weather (2018-2025 average) 237.42   27103   37671
+3:          2030 standard (from 2024) 235.90   26930   38453
+4:    2030 extreme summer (from 1991) 240.31   27433   39771
+
+== 2030, June-August ==
+              scenario    twh mean_mw peak_mw
+1:      normal weather 61.635   27914   34938
+2:       2030 standard 62.385   28254   38453
+3: 2030 extreme summer 62.851   28465   37989
+
+== Heat events vs normal weather and vs the 2030 standard year, same dates ==
+   id          event days pct_vs_normal peak_normal_mw extra_gwh mean_extra_mw
+1:  1      July 1995   31         3.844          34938     162.8         218.8
+2:  2      July 1991   21         4.484          34938     330.4         655.6
+3:  3 June–July 2015   41         6.454          34938    1723.8        1751.8
+4:  4      July 2022   44         5.108          34938     796.1         753.9
+5:  5      June 2017   56         3.893          32714    1441.5        1072.5
+6:  6  May–June 2022   47         4.606          31469    1386.6        1229.2
+7:  7 September 1988   20         5.906          32346     660.4        1375.8
+8:  8 September 1987   37         5.578          32346    1381.4        1555.6
+   mean_extra_pct peak_std_mw peak_event_mw return_period peak_extra_mw
+1:         0.7308       38453         38583      1 in 100         129.6
+2:         2.1894       37392         37989      1 in 100         596.9
+3:         6.0926       37392         38018       1 in 50         625.6
+4:         2.5352       38453         38976       1 in 50         522.7
+5:         4.1685       32693         36563      1 in 100        3869.4
+6:         4.7849       32373         37445       1 in 50        5071.9
+7:         5.0345       33477         35590       1 in 10        2113.0
+8:         5.8820       33477         35560       1 in 25        2082.9

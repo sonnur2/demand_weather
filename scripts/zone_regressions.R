@@ -24,39 +24,8 @@ out_dir <- "output/zones"
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 setFixest_nthreads(4)
 
-# ---------------------------------------------------------------------------
-# Provinces, communities and zones
-# ---------------------------------------------------------------------------
+source("scripts/zone_setup.R")
 
-community_of <- c(
-  ALMERIA = "andalucia", CADIZ = "andalucia", CORDOBA = "andalucia", GRANADA = "andalucia",
-  HUELVA = "andalucia", JAEN = "andalucia", MALAGA = "andalucia", SEVILLA = "andalucia",
-  HUESCA = "aragon", TERUEL = "aragon", ZARAGOZA = "aragon",
-  ASTURIAS = "asturias", CANTABRIA = "cantabria",
-  ALBACETE = "castilla_la_mancha", `CIUDAD REAL` = "castilla_la_mancha", CUENCA = "castilla_la_mancha",
-  GUADALAJARA = "castilla_la_mancha", TOLEDO = "castilla_la_mancha",
-  AVILA = "castilla_y_leon", BURGOS = "castilla_y_leon", LEON = "castilla_y_leon",
-  PALENCIA = "castilla_y_leon", SALAMANCA = "castilla_y_leon", SEGOVIA = "castilla_y_leon",
-  SORIA = "castilla_y_leon", VALLADOLID = "castilla_y_leon", ZAMORA = "castilla_y_leon",
-  BARCELONA = "cataluna", GERONA = "cataluna", LERIDA = "cataluna", TARRAGONA = "cataluna",
-  ALICANTE = "comunidad_valenciana", CASTELLON = "comunidad_valenciana", VALENCIA = "comunidad_valenciana",
-  BADAJOZ = "extremadura", CACERES = "extremadura",
-  `LA CORUNA` = "galicia", LUGO = "galicia", ORENSE = "galicia", PONTEVEDRA = "galicia",
-  `LA RIOJA` = "la_rioja", MADRID = "madrid", MURCIA = "murcia", NAVARRA = "navarra",
-  ALAVA = "pais_vasco", GUIPUZCOA = "pais_vasco", VIZCAYA = "pais_vasco"
-)
-zone_of <- c(
-  galicia = "north", asturias = "north", cantabria = "north", pais_vasco = "north",
-  castilla_y_leon = "interior", la_rioja = "interior", navarra = "interior", aragon = "interior",
-  madrid = "interior", castilla_la_mancha = "interior", extremadura = "interior",
-  cataluna = "med", comunidad_valenciana = "med", murcia = "med",
-  andalucia = "south"
-)
-zones <- c("north", "interior", "med", "south")
-
-geo <- data.table(province = names(community_of), community = unname(community_of))
-geo[, zone := zone_of[community]]
-stopifnot(setequal(geo$province, unique(wx$province)))
 
 # ---------------------------------------------------------------------------
 # Check the grouping against the weather data: cluster provinces on the
@@ -80,35 +49,14 @@ plot(hc, labels = paste0(colnames(tdev), " (", geo[match(colnames(tdev), provinc
 rect.hclust(hc, k = 4, border = "#C2571A")
 dev.off()
 
-# ---------------------------------------------------------------------------
-# Total-demand weights
-# ---------------------------------------------------------------------------
-
-comm <- fread(file.path(raw_dir, "hourly_demand_community_2015_2025.csv"),
-              colClasses = list(character = "datetime"))
-comm[, date := as.IDate(substr(datetime, 1, 10))]
-comm <- comm[date >= sample_start & date <= sample_end]
-comm_cols <- names(zone_of)
-comm_share <- data.table(community = comm_cols,
-                         c_share = sapply(comm_cols, function(k) sum(comm[[k]]) / sum(comm$peninsula)))
-
-wt <- merge(geo, w[, .(province, small = w)], by = "province")
-wt[, within := small / sum(small), by = community]
-wt <- merge(wt, comm_share, by = "community")
-wt[, weight := c_share * within]          # sums to 1 over the 47 provinces
 wt[, zone_weight := sum(weight), by = zone]
 fwrite(wt[order(zone, -weight)], file.path(out_dir, "province_weights_total_demand.csv"))
 cat("\nZone shares of peninsular demand:\n")
 print(unique(wt[, .(zone, zone_weight)]))
 
 # Zone and national HDD / CDD by day
-wz <- merge(wx[date >= sample_start & date <= sample_end], wt[, .(province, zone, weight)], by = "province")
-zwx <- wz[, .(hdd = sum(weight * hdd) / sum(weight), cdd = sum(weight * cdd) / sum(weight)), by = .(date, zone)]
-zwx_wide <- dcast(zwx, date ~ zone, value.var = c("hdd", "cdd"))
-nat2 <- wz[, .(hdd_nat = sum(weight * hdd), cdd_nat = sum(weight * cdd)), by = date]
-
-d <- merge(pen[, !c("hdd", "cdd", "tavg")], zwx_wide, by = "date")
-d <- merge(d, nat2, by = "date")
+d <- merge(pen[, !c("hdd", "cdd", "tavg")],
+           zone_weather(wx[date >= sample_start & date <= sample_end]), by = "date")
 
 # Zone deviations from the national value (for the test of the fixed weights)
 for (z in zones) {
@@ -164,9 +112,9 @@ tests <- rbind(cbind(model = "T2 (pooled hours)", wald_dev(m$T2)),
 sink(file.path(out_dir, "zone_tables.txt"))
 cat("== Peninsular demand (log MW), hourly, 2021-06 to 2025-12 ==\n")
 print(etable(m[c("N2", "Z2", "T2")], dict = dict, digits = 5, fitstat = ~ n + r2 + wr2))
-cat("\nWithin R2 by hour-interacted model: ",
-    sprintf("N4 %.4f | Z4 %.4f | T4 %.4f\n", fitstat(m$N4, "wr2")[[1]], fitstat(m$Z4, "wr2")[[1]],
-            fitstat(m$T4, "wr2")[[1]]))
+for (k in c("N4", "Z4", "T4")) {
+  cat(sprintf("%s (by hour): R2 %.4f | within R2 %.4f\n", k, fitstat(m[[k]], "r2")[[1]], fitstat(m[[k]], "wr2")[[1]]))
+}
 cat("\nWald test that zone deviations are jointly zero (fixed national weights are enough):\n")
 print(tests)
 sink()
@@ -243,7 +191,7 @@ cl_share <- unique(merge(wt[, .(province, weight)], geo[, .(province, cluster)])
 sink(file.path(out_dir, "zone_tables.txt"), append = TRUE)
 cat("\nRobustness Z2c: zones = data-driven clusters (demand shares below)\n")
 print(cl_share[order(cluster)])
-print(etable(m$Z2c, digits = 5, fitstat = ~ n + wr2))
+print(etable(m$Z2c, digits = 5, fitstat = ~ n + r2 + wr2))
 cat("Sum of CDD coefficients:", sum(coef(m$Z2c)[grep("^cdd", names(coef(m$Z2c)))]),
     " HDD:", sum(coef(m$Z2c)[grep("^hdd", names(coef(m$Z2c)))]), "\n")
 cat("\nZone effects (Z2), % per zone degree-day; per_share = effect / zone demand share:\n")

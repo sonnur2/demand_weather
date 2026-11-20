@@ -47,5 +47,11 @@ The extreme (1991-based) year is **not hotter at its single hottest day** than t
 - `cold_spells.csv`: runs of days with HDD above the 2018–2025 99th percentile (8.6).
 - `peak_days_weather.csv`: weather on the projected peak days.
 - `february_mean_daily_hdd_by_zone.csv`: February HDD by climate zone.
-- `daily_temperature_2030.png`: daily national temperature, both years, against the 2018–2025 range.
-- `monthly_degree_days_2030.png`: monthly HDD and CDD bars.
+Charts (white background, every line named in the legend):
+
+1. `1_daily_temperature_2030.png`: daily national mean temperature of each 2030 year. The dark grey line is the 2018–2025 average for that calendar date. The light grey band runs from the coldest to the warmest observed year on that date. Dashed and dotted lines mark 21 °C and 14 °C, the CDD and HDD thresholds.
+2. `2_monthly_degree_days_2030.png`: monthly HDD and CDD for both 2030 years and the 2018–2025 average.
+3. `3_cumulative_degree_days_2030.png`: HDD and CDD accumulated from 1 January. The gap opens in January–February and October–November (HDD) and in June and September (CDD).
+4. `4_temperature_distribution_2030.png`: how often each daily temperature occurs. The extreme year has more cold days and more hot days, and fewer mild days.
+5. `5_temperature_difference_by_zone_month.png`: extreme minus standard monthly mean temperature by climate zone. February is 3.2–3.6 °C colder in every zone, and September is 1.8–3.5 °C warmer.
+6. `6_winter_hdd_2030.png`: daily HDD from January to March, showing the two cold spells of the extreme year (mid-January and 11–15 February).

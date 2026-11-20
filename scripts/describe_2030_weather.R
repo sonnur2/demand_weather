@@ -76,31 +76,103 @@ zfeb <- zfeb[, .(HDD = sum(w * hdd) / sum(w)), by = .(scenario, zone)]  # mean d
 fwrite(dcast(zfeb, zone ~ scenario, value.var = "HDD"), file.path(out_dir, "february_mean_daily_hdd_by_zone.csv"))
 
 # ---------------------------------------------------------------------------
-# 3. Plots
+# 3. Plots (white background; every line and band named in the legend)
 # ---------------------------------------------------------------------------
-band <- nh[year(date) %in% 2018:2025 & !(month == 2 & mday(date) == 29),
-           .(lo = min(tavg), hi = max(tavg), mid = mean(tavg)), by = doy]
-cols <- c(standard = "#C8551B", extreme = "#14213D")
-p1 <- ggplot() +
-  geom_ribbon(data = band, aes(doy, ymin = lo, ymax = hi), fill = "grey85") +
-  geom_line(data = band, aes(doy, mid), colour = "grey55") +
-  geom_line(data = n30, aes(doy, tavg, colour = scenario), linewidth = 0.5) +
-  geom_hline(yintercept = c(14, 21), linetype = "dashed") +
-  scale_colour_manual(values = cols) +
-  labs(x = "Day of 2030", y = "National mean temperature (°C)",
-       title = "2030 daily mean temperature: standard (2024-based) vs extreme (1991-based)",
-       subtitle = "Grey band: min-max of 2018-2025 observed on the same calendar day; dashed: 14 °C and 21 °C thresholds") +
-  theme_minimal(base_size = 11) + theme(legend.position = "bottom")
-ggsave(file.path(out_dir, "daily_temperature_2030.png"), p1, width = 11, height = 5, dpi = 150)
+cols <- c("Standard 2030 (from 2024)" = "#D55E00", "Extreme 2030 (from 1991)" = "#0B3C8C",
+          "Observed 2018-2025 average" = "grey35")
+lab <- c(standard = "Standard 2030 (from 2024)", extreme = "Extreme 2030 (from 1991)")
+n30[, Scenario := factor(lab[scenario], levels = lab)]
+th <- theme_bw(base_size = 12) + theme(legend.position = "bottom", legend.box = "vertical",
+                                       plot.background = element_rect(fill = "white", colour = NA))
+save <- function(p, f, w = 11, h = 5.5) ggsave(file.path(out_dir, f), p, width = w, height = h, dpi = 150, bg = "white")
+mticks <- yday(as.IDate(sprintf("2030-%02d-01", 1:12)))
+xmonth <- scale_x_continuous(breaks = mticks, labels = month.abb, expand = c(0.01, 0))
 
-ml <- melt(monthly, id.vars = c("scenario", "month"), measure.vars = c("HDD", "CDD"))
-p2 <- ggplot(ml, aes(factor(month), value, fill = scenario)) +
-  geom_col(position = "dodge") + facet_wrap(~variable, ncol = 1, scales = "free_y") +
-  scale_fill_manual(values = cols) +
-  labs(x = "Month", y = "Degree-days (national, sum over the month)",
-       title = "Monthly heating and cooling degree-days, 2030 scenarios") +
-  theme_minimal(base_size = 11) + theme(legend.position = "bottom")
-ggsave(file.path(out_dir, "monthly_degree_days_2030.png"), p2, width = 9, height = 6, dpi = 150)
+obs <- nh[year(date) %in% 2018:2025 & !(month == 2 & mday(date) == 29)]
+obs[, doy30 := yday(as.IDate(sprintf("2030-%02d-%02d", month, mday(date))))]
+band <- obs[, .(lo = min(tavg), hi = max(tavg), mid = mean(tavg),
+                hdd = mean(hdd), cdd = mean(cdd)), by = doy30][order(doy30)]
+
+# (1) Daily national mean temperature
+p1 <- ggplot() +
+  geom_ribbon(data = band, aes(doy30, ymin = lo, ymax = hi, fill = "Observed 2018-2025: coldest to warmest year on that date")) +
+  geom_line(data = band, aes(doy30, mid, colour = "Observed 2018-2025 average"), linewidth = 0.6) +
+  geom_line(data = n30, aes(doy, tavg, colour = Scenario), linewidth = 0.6) +
+  geom_hline(aes(yintercept = c(14, 21), linetype = c("HDD threshold 14 °C", "CDD threshold 21 °C"))) +
+  scale_colour_manual(NULL, values = cols) + scale_fill_manual(NULL, values = "grey85") +
+  scale_linetype_manual(NULL, values = c("dashed", "dotted")) + xmonth +
+  labs(x = NULL, y = "Daily mean temperature, °C",
+       title = "Daily national mean temperature in the two 2030 weather scenarios",
+       subtitle = "National = demand-weighted average of the 47 provinces.\nDays below 14 °C count heating degree-days (HDD); days above 21 °C count cooling degree-days (CDD).") + th
+save(p1, "1_daily_temperature_2030.png", h = 6.5)
+
+# (2) Monthly HDD and CDD vs observed average
+mobs <- obs[, .(HDD = sum(hdd), CDD = sum(cdd)), by = .(y = year(date), month)][
+  , .(HDD = mean(HDD), CDD = mean(CDD)), by = month]
+mm <- rbind(monthly[, .(Scenario = lab[scenario], month, HDD, CDD)],
+            mobs[, .(Scenario = "Observed 2018-2025 average", month, HDD, CDD)])
+mm <- melt(mm, id.vars = c("Scenario", "month"), variable.name = "var")
+mm[, var := factor(var, labels = c("Heating degree-days (HDD14)", "Cooling degree-days (CDD21)"))]
+mm[, Scenario := factor(Scenario, levels = names(cols))]
+p2 <- ggplot(mm, aes(factor(month, labels = month.abb), value, fill = Scenario)) +
+  geom_col(position = position_dodge(0.8), width = 0.75) +
+  facet_wrap(~var, ncol = 1, scales = "free_y") + scale_fill_manual(NULL, values = cols) +
+  labs(x = NULL, y = "Degree-days in the month (national)",
+       title = "Monthly degree-days: extreme vs standard vs observed average",
+       subtitle = "Extreme year: much more heating in Jan, Feb and Nov; more cooling in Jun and Sep") + th
+save(p2, "2_monthly_degree_days_2030.png", h = 7)
+
+# (3) Cumulative degree-days through the year
+cum <- rbind(n30[order(date), .(doy, HDD = cumsum(hdd), CDD = cumsum(cdd)), by = Scenario],
+             band[, .(Scenario = "Observed 2018-2025 average", doy = doy30, HDD = cumsum(hdd), CDD = cumsum(cdd))])
+cum <- melt(cum, id.vars = c("Scenario", "doy"), variable.name = "var")
+cum[, var := factor(var, labels = c("Cumulative HDD", "Cumulative CDD"))]
+p3 <- ggplot(cum, aes(doy, value, colour = factor(Scenario, levels = names(cols)))) +
+  geom_line(linewidth = 0.9) + facet_wrap(~var, scales = "free_y") +
+  scale_colour_manual(NULL, values = cols) + xmonth +
+  labs(x = NULL, y = "Degree-days accumulated since 1 January",
+       title = "Where in the year the two scenarios pull apart",
+       subtitle = "Steeper slope = more heating / cooling need in that period") + th
+save(p3, "3_cumulative_degree_days_2030.png")
+
+# (4) Distribution of daily temperature
+dens <- rbind(n30[, .(Scenario = as.character(Scenario), tavg)],
+              obs[, .(Scenario = "Observed 2018-2025 average", tavg)])
+p4 <- ggplot(dens, aes(tavg, colour = factor(Scenario, levels = names(cols)))) +
+  geom_density(linewidth = 1) + geom_vline(xintercept = c(14, 21), linetype = "dashed") +
+  scale_colour_manual(NULL, values = c(cols[1:2], "Observed 2018-2025 average" = "grey35")) +
+  labs(x = "Daily mean temperature, °C", y = "Share of days (density)",
+       title = "How often each temperature occurs",
+       subtitle = "Smoothed share of days at each daily mean temperature. Grey line: all days of 2018-2025 pooled.\nThe extreme year has more cold days and more hot days, and far fewer mild days between 14 and 21 °C.") + th
+save(p4, "4_temperature_distribution_2030.png", w = 9)
+
+# (5) Extreme minus standard, by zone and month
+zm <- merge(wx30, wt[, .(province, zone, w = weight)], by = "province")[
+  , .(tavg = sum(w * tavg) / sum(w)), by = .(scenario, zone, date)][
+  , .(tavg = mean(tavg)), by = .(scenario, zone, month = month(date))]
+zm <- dcast(zm, zone + month ~ scenario, value.var = "tavg")[, diff := extreme - standard]
+zm[, zone := factor(zone, levels = c("north", "interior", "med", "south"),
+                    labels = c("North", "Interior", "Mediterranean", "South"))]
+p5 <- ggplot(zm, aes(factor(month, labels = month.abb), zone, fill = diff)) +
+  geom_tile(colour = "white") + geom_text(aes(label = sprintf("%+.1f", diff)), size = 3.6) +
+  scale_fill_gradient2("Extreme minus\nstandard, °C", low = "#2166AC", mid = "white", high = "#B2182B") +
+  labs(x = NULL, y = NULL, title = "Monthly mean temperature: extreme year minus standard year, by climate zone",
+       subtitle = "Blue = extreme year colder, red = extreme year warmer") + th +
+  theme(legend.position = "right")
+save(p5, "5_temperature_difference_by_zone_month.png", h = 4)
+
+# (6) Winter zoom: daily national HDD, 1 Jan to 31 Mar
+wz <- n30[month <= 3]
+p6 <- ggplot(wz, aes(as.Date(date), hdd, colour = Scenario)) +
+  geom_line(linewidth = 0.8) +
+  geom_line(data = band[doy30 <= 90], aes(as.Date("2029-12-31") + doy30, hdd, colour = "Observed 2018-2025 average"),
+            linewidth = 0.6) +
+  annotate("text", x = as.Date("2030-02-14"), y = 9.6, label = "Cold spell 11-15 Feb\n(extreme peak hour: 14 Feb 20h)", size = 3.5) +
+  scale_colour_manual(NULL, values = cols) +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%d %b") +
+  labs(x = NULL, y = "Daily national HDD (14 - mean temperature)",
+       title = "Winter close-up: heating degree-days, January to March 2030") + th
+save(p6, "6_winter_hdd_2030.png")
 
 cat("HDD 99th pct threshold (2018-2025):", round(thr, 2), "\n")
 print(annual[order(scenario)], digits = 4)

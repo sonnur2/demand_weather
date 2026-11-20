@@ -47,6 +47,7 @@ The extreme (1991-based) year is **not hotter at its single hottest day** than t
 - `cold_spells.csv`: runs of days with HDD above the 2018–2025 99th percentile (8.6).
 - `peak_days_weather.csv`: weather on the projected peak days.
 - `february_mean_daily_hdd_by_zone.csv`: February HDD by climate zone.
+
 Charts (white background, every line named in the legend):
 
 1. `1_daily_temperature_2030.png`: daily national mean temperature of each 2030 year. The dark grey line is the 2018–2025 average for that calendar date. The light grey band runs from the coldest to the warmest observed year on that date. Dashed and dotted lines mark 21 °C and 14 °C, the CDD and HDD thresholds.

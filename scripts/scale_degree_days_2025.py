@@ -2,11 +2,10 @@
 
 Base: actual 2025 provincial HDD14/CDD21 (raw_data/HDD14_CDD21.xlsx), 2025 calendar,
 2025 level (year effect). Scenarios multiply degree days:
-    s1_plus10: HDD x 1.10 and CDD x 1.10
-    s2_plus20: HDD x 1.20 and CDD x 1.20
-Main version scales every day (HDD is only non-zero in the heating season and CDD
-in the cooling season). Variant 'strict seasons' scales HDD only Dec-Feb and CDD
-only Jun-Aug (reported in the summary for comparison).
+    s1_plus10: winter (Dec-Feb) HDD x 1.10 and summer (Jun-Aug) CDD x 1.10
+    s2_plus20: winter (Dec-Feb) HDD x 1.20 and summer (Jun-Aug) CDD x 1.20
+Other months keep their actual 2025 degree days. Variant '_allyear' scales HDD and
+CDD on every day (reported in the summary for comparison only).
 Scaling each province by k scales the national (weighted) value by k as well.
 
 Demand: M4 on the 2025 calendar. log D = calendar terms + b_H(h)*HDD + b_C(h)*CDD;
@@ -69,11 +68,11 @@ winter, summer = month.isin([12, 1, 2]), month.isin([6, 7, 8])
 # Degree-day scenarios (national, daily)
 dd = pd.DataFrame(index=nat0.index)
 for s, k in SCEN.items():
-    dd[f"hdd_{s}"] = nat0.hdd * k
-    dd[f"cdd_{s}"] = nat0.cdd * k
+    dd[f"hdd_{s}"] = np.where(winter, nat0.hdd * k, nat0.hdd)
+    dd[f"cdd_{s}"] = np.where(summer, nat0.cdd * k, nat0.cdd)
 for s, k in list(SCEN.items())[1:]:
-    dd[f"hdd_{s}_strict"] = np.where(winter, nat0.hdd * k, nat0.hdd)
-    dd[f"cdd_{s}_strict"] = np.where(summer, nat0.cdd * k, nat0.cdd)
+    dd[f"hdd_{s}_allyear"] = nat0.hdd * k
+    dd[f"cdd_{s}_allyear"] = nat0.cdd * k
 
 # Demand
 eff = pd.read_csv("output/baseline/hourly_effects_M4.csv")
@@ -96,7 +95,7 @@ D = pd.DataFrame({"date": ref.date, "hour": h, "actual_2025": actual})
 for s in SCEN:
     D[s] = demand(dd[f"hdd_{s}"], dd[f"cdd_{s}"])
 for s in list(SCEN)[1:]:
-    D[f"{s}_strict"] = demand(dd[f"hdd_{s}_strict"], dd[f"cdd_{s}_strict"])
+    D[f"{s}_allyear"] = demand(dd[f"hdd_{s}_allyear"], dd[f"cdd_{s}_allyear"])
 
 # Energeia files (main version)
 tpl = "raw_data/energeia_demand_template.xlsx"
@@ -114,7 +113,7 @@ for s in SCEN:
     wb.save(OUT / f"energeia_demand_2025_dd_{s}_M4.xlsx")
 
 # Summaries
-cols = ["actual_2025", *SCEN, *[f"{s}_strict" for s in list(SCEN)[1:]]]
+cols = ["actual_2025", *SCEN, *[f"{s}_allyear" for s in list(SCEN)[1:]]]
 D["month"] = D.date.dt.month
 mon = D.groupby("month")[cols].sum() / 1e6
 mon.loc["Year"] = mon.sum()
@@ -133,12 +132,13 @@ summ = pd.DataFrame(summ)
 
 prov_out = prov.sort_values(["province", "date"]).rename(columns={"hdd": "hdd_base", "cdd": "cdd_base"})
 for s, k in list(SCEN.items())[1:]:
-    prov_out[f"hdd_{s}"] = prov_out.hdd_base * k
-    prov_out[f"cdd_{s}"] = prov_out.cdd_base * k
+    m = prov_out.date.dt.month
+    prov_out[f"hdd_{s}"] = np.where(m.isin([12, 1, 2]), prov_out.hdd_base * k, prov_out.hdd_base)
+    prov_out[f"cdd_{s}"] = np.where(m.isin([6, 7, 8]), prov_out.cdd_base * k, prov_out.cdd_base)
 readme = pd.DataFrame({"note": [
     "Artificial degree-day scenarios built on ACTUAL 2025 weather (observed provincial HDD14/CDD21).",
-    "base = actual 2025 degree days; s1_plus10 = HDD and CDD x 1.10; s2_plus20 = HDD and CDD x 1.20 (every day of the year).",
-    "*_strict = only winter HDD (Dec-Feb) and summer CDD (Jun-Aug) scaled; other months unchanged. For comparison only.",
+    "base = actual 2025 degree days; s1_plus10 = winter (Dec-Feb) HDD and summer (Jun-Aug) CDD x 1.10; s2_plus20 = same x 1.20. Other months unchanged.",
+    "*_allyear = HDD and CDD scaled on every day of the year. For comparison only.",
     "National = small-consumer-weighted mean of the 47 provinces (same as M4). Scaling provinces by k scales the national value by k.",
     "Demand: M4, 2025 calendar (weekdays, holidays) and 2025 level. base = M4 fitted with actual 2025 weather.",
     "Demand in MW (= MWh per hour) hourly, TWh in summaries.",
@@ -174,7 +174,7 @@ for j, s in enumerate(["s1_plus10", "s2_plus20"]):
     ax[1].bar(mm.index + (j - 0.5) * bw, (mm[s] - mm["base"]) * 1e3, width=bw, color=col[s],
               label=f"{lab[s]}: {(mon.loc['Year', s] - mon.loc['Year', 'base']):+.2f} TWh/yr "
                     f"({100 * (mon.loc['Year', s] / mon.loc['Year', 'base'] - 1):+.1f}%)")
-ax[1].set_title("Change in monthly peninsular demand vs base (M4, 2025 calendar and level)")
+ax[1].set_title("Change in monthly peninsular demand vs base (M4, 2025 calendar and level; winter = Dec-Feb, summer = Jun-Aug)")
 ax[1].set_ylabel("GWh")
 ax[1].set_xticks(range(1, 13), ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
 ax[1].legend(fontsize=9)

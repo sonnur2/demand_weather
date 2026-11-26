@@ -3,6 +3,7 @@
 One file per model x scenario in output/energeia/:
     energeia_demand_2030_standard_<model>.xlsx      2030 weather from 2024 (Eduardo)
     energeia_demand_2030_extreme_<model>.xlsx       2030 weather from 1991 (Eduardo)
+    energeia_demand_2030_noweather_<model>.xlsx     benchmark, HDD = CDD = 0 every day
     energeia_demand_2030_event<k>_<name>_<model>.xlsx
         standard year with heat wave k inserted on its dates (one event per file,
         because the 8 events overlap in time)
@@ -28,13 +29,14 @@ YEAR = 2030
 MODELS = ["M1", "M2", "M3", "M4", "N2", "N4", "Z2", "Z4"]
 FIRST_ROW = 6          # first data row of Template_demand
 N_HOURS = 8760
+BASE = {"std": "standard", "extreme": "extreme", "no_weather": "noweather"}
 
 # Full-year series: label -> {datetime: row}
 years = defaultdict(dict)
 with SOURCE.open(newline="") as f:
     for r in csv.DictReader(f):
-        if r["scenario"] in ("std", "extreme"):
-            years[{"std": "standard", "extreme": "extreme"}[r["scenario"]]][r["datetime"]] = r
+        if r["scenario"] in BASE:
+            years[BASE[r["scenario"]]][r["datetime"]] = r
 
 # Event years: the standard year with the event's hours replaced
 ev_rows, ev_names = defaultdict(dict), {}
